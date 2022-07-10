@@ -1,0 +1,13 @@
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto;
+}
+
+.grid-item {
+  border: solid 1px black;
+}
+
+.rtcvid {
+  width: 400px;
+  height: 300px;
+}

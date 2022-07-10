@@ -1,0 +1,23 @@
+{
+  "name": "webrtc",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattslaney/WebRTC.git"
+  },
+  "author": "Matt Slaney",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mattslaney/WebRTC/issues"
+  },
+  "homepage": "https://github.com/mattslaney/WebRTC#readme",
+  "dependencies": {
+    "express": "^4.18.1",
+    "socket.io": "^4.5.1"
+  }
+}
