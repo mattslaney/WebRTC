@@ -1,0 +1,17 @@
+{
+    "iceServers": [
+        {
+            "urls": [
+                "stun:somehost:port"
+            ]
+        },
+        {
+            "urls": [
+                "turn:somehost:port"
+            ],
+            "username": "someuser",
+            "credential": "somepassword"
+        }
+    ],
+    "iceTransportPolicy": "all"
+}
