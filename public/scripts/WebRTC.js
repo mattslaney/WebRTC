@@ -1,9 +1,19 @@
-import { config } from "./config.js";
 const socket = io();
 
-let pc;
+let peerConnection;
+let peerConfig;
 let a = false;
 let b = false;
+
+// Load rtc config from server
+(async () => {
+  const response = await fetch("/config");
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
+  }
+
+  peerConfig = await response.json();
+})();
 
 /*
 Signalling with Socket.IO
@@ -14,12 +24,15 @@ socket.on("welcome", () => {
     code = prompt("Enter a room code", "test");
   }
   socket.emit("join", code);
+  console.debug("Joined room: ", code);
 });
-socket.on("created", () => {
+socket.on("created", (code) => {
   a = true;
+  console.debug("Room created: ", code)
 });
-socket.on("joined", () => {
+socket.on("joined", (code) => {
   b = true;
+  console.debug("Room joined: ", code)
 });
 socket.on("full", (code) => {
   alert(`The room ${code} is full`);
@@ -28,7 +41,7 @@ socket.on("begin", () => {
   startRTC();
 });
 socket.on("describe", (remoteSessionDesc) => {
-  pc.setRemoteDescription(new RTCSessionDescription(remoteSessionDesc));
+  peerConnection.setRemoteDescription(new RTCSessionDescription(remoteSessionDesc));
   if (b) answer();
 });
 socket.on("candidate", (iceCandidate) => {
@@ -36,7 +49,7 @@ socket.on("candidate", (iceCandidate) => {
     sdpMLineIndex: iceCandidate.label,
     candidate: iceCandidate.candidate,
   });
-  pc.addIceCandidate(candidate);
+  peerConnection.addIceCandidate(candidate);
 });
 socket.on("bye", () => {
   alert("The other user has left");
@@ -68,15 +81,16 @@ function startRTC() {
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
         localVideo.srcObject = stream;
-        pc = new RTCPeerConnection(config);
-        pc.onicecandidate = handleIceCandidate;
-        pc.onaddstream = handleRemoteStreamAdded;
-        pc.onremovestream = handleRemoteStreamRemoved;
-        pc.addStream(stream);
+        peerConnection = new RTCPeerConnection(peerConfig);
+        console.log(peerConnection)
+        peerConnection.onicecandidate = handleIceCandidate;
+        peerConnection.onaddstream = handleRemoteStreamAdded;
+        peerConnection.onremovestream = handleRemoteStreamRemoved;
+        peerConnection.addStream(stream);
         if (a) call();
       })
       .catch((err) => {
-        console.error("getUserMedia() error: " + e.name);
+        console.error("getUserMedia() error: " + err.name);
       });
   } catch (err) {
     console.error("Failed to create PeerConnection, exception: " + err.message);
@@ -85,8 +99,8 @@ function startRTC() {
 }
 
 function endRTC() {
-  pc.close();
-  pc = null;
+  peerConnection.close();
+  peerConnection = null;
 }
 
 function handleIceCandidate(ev) {
@@ -107,18 +121,18 @@ function handleRemoteStreamRemoved(ev) {
 }
 
 function call() {
-  pc.createOffer(
+  peerConnection.createOffer(
     (sessionDesc) => {
-      pc.setLocalDescription(sessionDesc);
+      peerConnection.setLocalDescription(sessionDesc);
       socket.emit("describe", sessionDesc);
     },
     (err) => console.error(err)
   );
 }
 function answer() {
-  pc.createAnswer().then(
+  peerConnection.createAnswer().then(
     (sessionDesc) => {
-      pc.setLocalDescription(sessionDesc);
+      peerConnection.setLocalDescription(sessionDesc);
       socket.emit("describe", sessionDesc);
     },
     (err) => console.error(err)
