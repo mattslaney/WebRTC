@@ -1,13 +1,11 @@
-.grid-container {
+#videos {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
 }
 
-.grid-item {
-  border: solid 1px black;
-}
-
-.rtcvid {
-  width: 400px;
+.video-player {
+  background-color: black;
+  width: 100%;
   height: 300px;
 }

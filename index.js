@@ -60,17 +60,32 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("leave", (code) => {
+    console.debug(`${socket.id} left room: `, code);
+    socket.leave(code);
+    const rooms = Array.from(socket.rooms);
+    rooms.forEach((room) => {
+      io.to(room).emit("bye");
+    });
+  })
+
   socket.on("describe", (sessionDesc) => {
+    console.debug("SDP received of type: ", sessionDesc.type);
     socket.broadcast.emit("describe", sessionDesc);
   });
 
   socket.on("candidate", (candidate) => {
+    console.debug("Candidate received: ", candidate.candidate);
     socket.broadcast.emit("candidate", candidate);
   });
 
-  io.on("disconnecting", (socket) => {
-    io.to(socket.rooms).emit("bye");
-    console.debug("Disconnected: ", socket);
+  socket.on("disconnecting", () => {
+    console.log(`User ${socket.id} disconnected from rooms: `, socket.rooms);
+    const rooms = Array.from(socket.rooms);
+
+    rooms.forEach((room) => {
+      io.to(room).emit("bye");
+    });
   });
 });
 

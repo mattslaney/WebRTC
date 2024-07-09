@@ -2,8 +2,8 @@ const socket = io();
 
 let peerConnection;
 let peerConfig;
-let a = false;
-let b = false;
+let localUser = false;
+let remoteUser = false;
 
 // Load rtc config from server
 (async () => {
@@ -15,34 +15,51 @@ let b = false;
   peerConfig = await response.json();
 })();
 
+const joinRoom = document.getElementById("joinRoom");
+const roomCode = document.getElementById("roomCode");
+joinRoom.onclick = () => {
+  let code = roomCode.value;
+  if (code) {
+    if (roomCode.disabled) {
+      socket.emit("leave", code);
+      console.debug("Left room: ", code);
+      joinRoom.value = "Join Room";
+      roomCode.disabled = "";
+    } else {
+      socket.emit("join", code);
+      console.debug("Joined room: ", code);
+      joinRoom.value = "Leave Room";
+      roomCode.disabled = "disabled";
+    }
+  }
+};
+
 /*
 Signalling with Socket.IO
 */
-socket.on("welcome", () => {
-  let code;
-  while (!code) {
-    code = prompt("Enter a room code", "test");
-  }
-  socket.emit("join", code);
-  console.debug("Joined room: ", code);
+socket.on("welcome", async () => {
+  await init();
 });
 socket.on("created", (code) => {
-  a = true;
-  console.debug("Room created: ", code)
+  localUser = true;
+  console.debug("Room created: ", code);
 });
 socket.on("joined", (code) => {
-  b = true;
-  console.debug("Room joined: ", code)
+  remoteUser = true;
+  console.debug("Room joined: ", code);
 });
 socket.on("full", (code) => {
   alert(`The room ${code} is full`);
 });
 socket.on("begin", () => {
-  startRTC();
+  console.debug("Both users ready to start");
+  if (localUser) call();
 });
 socket.on("describe", (remoteSessionDesc) => {
-  peerConnection.setRemoteDescription(new RTCSessionDescription(remoteSessionDesc));
-  if (b) answer();
+  peerConnection.setRemoteDescription(
+    new RTCSessionDescription(remoteSessionDesc)
+  );
+  if (remoteUser) answer();
 });
 socket.on("candidate", (iceCandidate) => {
   let candidate = new RTCIceCandidate({
@@ -53,7 +70,7 @@ socket.on("candidate", (iceCandidate) => {
 });
 socket.on("bye", () => {
   alert("The other user has left");
-  stopRTC();
+  hangup();
 });
 
 /* WebRTC 
@@ -75,67 +92,79 @@ ice candidates generated and added
 var localVideo = document.querySelector("#localVideo");
 var remoteVideo = document.querySelector("#remoteVideo");
 
-function startRTC() {
-  try {
-    navigator.mediaDevices
-      .getUserMedia({ audio: true, video: true })
-      .then((stream) => {
-        localVideo.srcObject = stream;
-        peerConnection = new RTCPeerConnection(peerConfig);
-        console.log(peerConnection)
-        peerConnection.onicecandidate = handleIceCandidate;
-        peerConnection.onaddstream = handleRemoteStreamAdded;
-        peerConnection.onremovestream = handleRemoteStreamRemoved;
-        peerConnection.addStream(stream);
-        if (a) call();
-      })
-      .catch((err) => {
-        console.error("getUserMedia() error: " + err.name);
-      });
-  } catch (err) {
-    console.error("Failed to create PeerConnection, exception: " + err.message);
-    return;
-  }
-}
+// When local user joins get camera permission and create peer connection
+const init = async () => {
+  let localStream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: true,
+  });
+  localVideo.srcObject = localStream;
 
-function endRTC() {
-  peerConnection.close();
-  peerConnection = null;
-}
+  peerConnection = new RTCPeerConnection(peerConfig);
 
-function handleIceCandidate(ev) {
-  if (ev.candidate) {
-    socket.emit("candidate", {
-      label: ev.candidate.sdpMLineIndex,
-      id: ev.candidate.sdpMid,
-      candidate: ev.candidate.candidate,
-    });
-  }
-}
-function handleRemoteStreamAdded(ev) {
-  remoteVideo.srcObject = ev.stream;
-}
-function handleRemoteStreamRemoved(ev) {
-  console.log("gone");
-  remoteVideo.srcObject = "";
-}
+  localStream.getTracks().forEach((track) => {
+    console.debug("Track added to local stream: ", track);
+    peerConnection.addTrack(track, localStream);
+  });
 
-function call() {
+  peerConnection.onicecandidate = handleIceCandidate;
+  peerConnection.ontrack = handleRemoteStreamAdded;
+  peerConnection.removetrack = handleRemoteStreamRemoved;
+
+  console.log("INITIALISED");
+  console.debug("Peer Connection: ", peerConnection);
+};
+
+// When remote user joins, send offer
+const call = () => {
   peerConnection.createOffer(
     (sessionDesc) => {
       peerConnection.setLocalDescription(sessionDesc);
+      console.log("OFFER");
+      console.debug("Sending offer", sessionDesc);
       socket.emit("describe", sessionDesc);
     },
     (err) => console.error(err)
   );
-}
+};
+
 function answer() {
   peerConnection.createAnswer().then(
     (sessionDesc) => {
       peerConnection.setLocalDescription(sessionDesc);
+      console.log("ANSWER");
+      console.debug("Sending answer", sessionDesc);
       socket.emit("describe", sessionDesc);
     },
     (err) => console.error(err)
   );
 }
-function hangup() {}
+
+const hangup = () => {
+  console.log("HANGUP");
+  peerConnection.close();
+  peerConnection = null;
+};
+
+const handleIceCandidate = (event) => {
+  if (event.candidate) {
+    console.debug("New ICE Candidate", event.candidate);
+    socket.emit("candidate", {
+      label: event.candidate.sdpMLineIndex,
+      id: event.candidate.sdpMid,
+      candidate: event.candidate.candidate,
+    });
+  }
+};
+const handleRemoteStreamAdded = (event) => {
+  let remoteStream = new MediaStream();
+  remoteVideo.srcObject = remoteStream;
+  event.streams[0].getTracks().forEach((track) => {
+    console.debug("Track added to remote stream: ", track);
+    remoteStream.addTrack(track);
+  });
+};
+const handleRemoteStreamRemoved = (ev) => {
+  console.log("Remote Stream Removed");
+  remoteVideo.srcObject = "";
+};
