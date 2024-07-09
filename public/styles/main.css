@@ -1,11 +1,102 @@
+#root, html, body {
+  margin: 0;
+  height: 100%;
+}
+
 #videos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2em;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+#local-video {
+  height: 100%;
+}
+
+#remote-video {
+  display: none;
+  position: absolute;
+  width: 300px;
+  height: 200px;
 }
 
 .video-player {
   background-color: black;
+}
+
+.btn {
+  cursor: pointer;
+  user-select: none;
+}
+
+#call-control-panel {
+  color: white;
   width: 100%;
-  height: 300px;
+  position: fixed;
+  bottom: 50px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+#room-control {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+#join-room {
+  display: flex;
+  flex-wrap: nowrap;
+  margin: 0.25em;
+}
+
+#join-room>div:first-of-type {
+  background-color: seagreen;
+  height: 50px;
+  width: 50px;
+  border-top-left-radius: 100%;
+  border-bottom-left-radius: 100%;
+}
+
+#room-code-input {
+  background-color: seagreen;
+  color: white;
+  font-size: 2em;
+  font-family: 'Courier New', Courier, monospace;
+  width: 8ch;
+  height: 48px;
+  border: 0px;
+  margin: 0px;
+  outline: none;
+}
+
+#join-room>#join-btn {
+  background-color: seagreen;
+  height: 50px;
+  width: 50px;
+  border-top-right-radius: 100%;
+  border-bottom-right-radius: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#join-room>#join-btn>.call-control-icon {
+  font-size: 2em;
+}
+
+.call-control-button {
+  background-color: seagreen;
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  margin: 0.25em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.material-icons.call-control-icon {
+  font-size: 2em;
 }

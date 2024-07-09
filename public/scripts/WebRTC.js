@@ -1,9 +1,16 @@
 const socket = io();
 
+const joinRoom    = document.getElementById("join-room");
+const joinRoomBtn = document.getElementById("join-btn");
+const leaveRoom   = document.getElementById("leave-btn");
+const roomCode    = document.getElementById("room-code-input");
+const localVideo  = document.getElementById("local-video");
+const remoteVideo = document.getElementById("remote-video");
+
 let peerConnection;
 let peerConfig;
-let localUser = false;
-let remoteUser = false;
+let isCaller = false;
+let isCallee = false;
 
 // Load rtc config from server
 (async () => {
@@ -15,22 +22,21 @@ let remoteUser = false;
   peerConfig = await response.json();
 })();
 
-const joinRoom = document.getElementById("joinRoom");
-const roomCode = document.getElementById("roomCode");
-joinRoom.onclick = () => {
+joinRoomBtn.onclick = () => {
   let code = roomCode.value;
   if (code) {
-    if (roomCode.disabled) {
+    socket.emit("join", code);
+    console.debug("Joined room: ", code);
+    joinRoom.style.display = "none";
+    leaveRoom.style.display = "flex";
+    leaveRoom.onclick = (code) => {
       socket.emit("leave", code);
       console.debug("Left room: ", code);
-      joinRoom.value = "Join Room";
-      roomCode.disabled = "";
-    } else {
-      socket.emit("join", code);
-      console.debug("Joined room: ", code);
-      joinRoom.value = "Leave Room";
-      roomCode.disabled = "disabled";
+      joinRoom.style.display = "flex";
+      leaveRoom.style.display = "none";
+      leaveRoom.onclick = undefined;
     }
+    roomCode.disabled = "disabled";
   }
 };
 
@@ -41,11 +47,11 @@ socket.on("welcome", async () => {
   await init();
 });
 socket.on("created", (code) => {
-  localUser = true;
+  isCaller = true;
   console.debug("Room created: ", code);
 });
 socket.on("joined", (code) => {
-  remoteUser = true;
+  isCallee = true;
   console.debug("Room joined: ", code);
 });
 socket.on("full", (code) => {
@@ -53,13 +59,13 @@ socket.on("full", (code) => {
 });
 socket.on("begin", () => {
   console.debug("Both users ready to start");
-  if (localUser) call();
+  if (isCaller) call();
 });
 socket.on("describe", (remoteSessionDesc) => {
   peerConnection.setRemoteDescription(
     new RTCSessionDescription(remoteSessionDesc)
   );
-  if (remoteUser) answer();
+  if (isCallee) answer();
 });
 socket.on("candidate", (iceCandidate) => {
   let candidate = new RTCIceCandidate({
@@ -69,7 +75,7 @@ socket.on("candidate", (iceCandidate) => {
   peerConnection.addIceCandidate(candidate);
 });
 socket.on("bye", () => {
-  alert("The other user has left");
+  remoteVideo.style.display = "none";
   hangup();
 });
 
@@ -88,9 +94,6 @@ socket.on("bye", () => {
 ice candidates generated and added
 ------------------------------
 */
-
-var localVideo = document.querySelector("#localVideo");
-var remoteVideo = document.querySelector("#remoteVideo");
 
 // When local user joins get camera permission and create peer connection
 const init = async () => {
@@ -163,6 +166,7 @@ const handleRemoteStreamAdded = (event) => {
     console.debug("Track added to remote stream: ", track);
     remoteStream.addTrack(track);
   });
+  remoteVideo.style.display = "block";
 };
 const handleRemoteStreamRemoved = (ev) => {
   console.log("Remote Stream Removed");

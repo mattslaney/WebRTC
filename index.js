@@ -91,6 +91,7 @@ io.on("connection", (socket) => {
 
 app.use(express.static("public"));
 
+app.use('/material-icons', express.static('node_modules/material-icons/iconfont'));
 app.get("/config", (_, res) => {
   const [username, password] = generateTurnCredentials();
   console.log(`TURN username: ${username}, password: ${password}`);

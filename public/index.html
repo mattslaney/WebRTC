@@ -4,17 +4,37 @@
     <title>WebRTC</title>
     <meta name="viewport" content="width=device-height, initial-scale=1.0" />
     <link type="text/css" rel="stylesheet" href="./styles/main.css" />
+    <link rel="stylesheet" href="./material-icons/material-icons.css" />
   </head>
   <body>
     <div id="videos">
-      <video id="localVideo" class="video-player" autoplay muted playsinline></video>
-      <video id="remoteVideo" class="video-player" autoplay playsinline></video>
+      <video id="remote-video" class="video-player" autoplay playsinline></video>
+      <video
+        id="local-video"
+        class="video-player"
+        autoplay
+        muted
+        playsinline
+      ></video>
     </div>
-    <div>
-      <input type="text" id="roomCode" />
-      <input type="button" value="Join" id="joinRoom" />
+    <div id="call-control-panel">
+      <div id="mic-btn" class="btn call-control-button">
+        <span class="call-control-icon material-icons">mic</span>
+      </div>
+      <div id="camera-btn" class="btn call-control-button">
+        <span class="call-control-icon material-icons material-icons-outlined">videocam</span>
+      </div>
+      <div id="join-room">
+        <div></div>
+        <input type="text" id="room-code-input" placeholder="roomcode"/>
+        <div id="join-btn" class="btn">
+          <span class="call-control-icon material-icons-outlined">login</span>
+        </div>
+      </div>
+      <div id="leave-btn" class="call-control-button btn" style="display:none">
+        <span class="call-control-icon material-icons">logout</span>
+      </div>
     </div>
-    <div id="log"></div>
   </body>
   <script src="./socket.io/socket.io.js"></script>
   <script type="module" src="./scripts/WebRTC.js"></script>
