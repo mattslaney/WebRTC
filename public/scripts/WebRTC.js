@@ -1,5 +1,6 @@
 const socket = io();
 
+const testBtn     = document.getElementById("test-btn");
 const joinRoom    = document.getElementById("join-room");
 const joinRoomBtn = document.getElementById("join-btn");
 const leaveRoom   = document.getElementById("leave-btn");
@@ -29,20 +30,26 @@ joinRoomBtn.onclick = () => {
     console.debug("Joined room: ", code);
     joinRoom.style.display = "none";
     leaveRoom.style.display = "flex";
-    leaveRoom.onclick = (code) => {
+    leaveRoom.onclick = () => {
       socket.emit("leave", code);
       console.debug("Left room: ", code);
       joinRoom.style.display = "flex";
       leaveRoom.style.display = "none";
       leaveRoom.onclick = undefined;
     }
-    roomCode.disabled = "disabled";
   }
 };
 
 /*
 Signalling with Socket.IO
 */
+testBtn.onclick = () => {
+  console.debug("Sending Test");
+  socket.emit("test");
+}
+socket.on("test", (data) => {
+  console.log("Received test message: ", data);
+});
 socket.on("welcome", async () => {
   await init();
 });
@@ -145,8 +152,8 @@ function answer() {
 
 const hangup = () => {
   console.log("HANGUP");
-  peerConnection.close();
-  peerConnection = null;
+  //peerConnection.close();
+  //peerConnection = null;
 };
 
 const handleIceCandidate = (event) => {

@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
       //Second client - join
       socket.join(code);
       socket.emit("joined", code);
-      io.to(code).emit("begin");
+      socket.to(code).emit("begin");
       console.debug("Second client: ", code);
     } else {
       //Room full - full
@@ -65,18 +65,33 @@ io.on("connection", (socket) => {
     socket.leave(code);
     const rooms = Array.from(socket.rooms);
     rooms.forEach((room) => {
-      io.to(room).emit("bye");
+      socket.to(room).emit("bye");
     });
-  })
+  });
 
   socket.on("describe", (sessionDesc) => {
     console.debug("SDP received of type: ", sessionDesc.type);
-    socket.broadcast.emit("describe", sessionDesc);
+    socket.rooms.forEach((room) => {
+      socket.to(room).emit("describe", sessionDesc);
+    });
   });
 
   socket.on("candidate", (candidate) => {
     console.debug("Candidate received: ", candidate.candidate);
-    socket.broadcast.emit("candidate", candidate);
+    socket.rooms.forEach((room) => {
+      socket.to(room).emit("candidate", candidate);
+    });
+  });
+
+  socket.on("test", () => {
+    console.debug(`Received Test from ${socket.id}`);
+    let rooms = socket.rooms;
+    console.log(`${socket.id} is in rooms ${rooms.size}`);
+    rooms.forEach((room) => {
+      console.log(`Sending test to room ${room}`);
+      socket.to(room).emit("test", "socket.to");
+    });
+    socket.broadcast.emit("test", "socket.broadcast");
   });
 
   socket.on("disconnecting", () => {
@@ -84,14 +99,17 @@ io.on("connection", (socket) => {
     const rooms = Array.from(socket.rooms);
 
     rooms.forEach((room) => {
-      io.to(room).emit("bye");
+      socket.to(room).emit("bye");
     });
   });
 });
 
 app.use(express.static("public"));
 
-app.use('/material-icons', express.static('node_modules/material-icons/iconfont'));
+app.use(
+  "/material-icons",
+  express.static("node_modules/material-icons/iconfont")
+);
 app.get("/config", (_, res) => {
   const [username, password] = generateTurnCredentials();
   console.log(`TURN username: ${username}, password: ${password}`);
