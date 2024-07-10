@@ -1,12 +1,14 @@
 const socket = io();
 
-const testBtn     = document.getElementById("test-btn");
-const joinRoom    = document.getElementById("join-room");
+const testBtn = document.getElementById("test-btn");
+const joinRoom = document.getElementById("join-room");
 const joinRoomBtn = document.getElementById("join-btn");
-const leaveRoom   = document.getElementById("leave-btn");
-const roomCode    = document.getElementById("room-code-input");
-const localVideo  = document.getElementById("local-video");
-const remoteVideo = document.getElementById("remote-video");
+const leaveRoom = document.getElementById("leave-btn");
+const micBtn = document.getElementById("mic-btn");
+const camBtn = document.getElementById("cam-btn");
+const roomCode = document.getElementById("room-code-input");
+const pipVideo = document.getElementById("pip-video");
+const mainVideo = document.getElementById("main-video");
 
 let peerConnection;
 let peerConfig;
@@ -36,8 +38,30 @@ joinRoomBtn.onclick = () => {
       joinRoom.style.display = "flex";
       leaveRoom.style.display = "none";
       leaveRoom.onclick = undefined;
-    }
+    };
   }
+};
+
+micBtn.onclick = () => {
+  toggleTrack("audio")
+    ? (micBtn.style.backgroundColor = "")
+    : (micBtn.style.backgroundColor = "gray");
+};
+
+camBtn.onclick = () => {
+  toggleTrack("video")
+    ? (camBtn.style.backgroundColor = "")
+    : (camBtn.style.backgroundColor = "gray");
+};
+
+const toggleTrack = (kind) => {
+  let mediaTrack = pipVideo.srcObject
+    .getTracks()
+    .find((track) => track.kind === kind);
+  mediaTrack.enabled
+    ? mediaTrack.enabled = false
+    : mediaTrack.enabled = true;
+  return mediaTrack.enabled;
 };
 
 /*
@@ -46,7 +70,7 @@ Signalling with Socket.IO
 testBtn.onclick = () => {
   console.debug("Sending Test");
   socket.emit("test");
-}
+};
 socket.on("test", (data) => {
   console.log("Received test message: ", data);
 });
@@ -82,7 +106,6 @@ socket.on("candidate", (iceCandidate) => {
   peerConnection.addIceCandidate(candidate);
 });
 socket.on("bye", () => {
-  remoteVideo.style.display = "none";
   hangup();
 });
 
@@ -108,7 +131,7 @@ const init = async () => {
     audio: true,
     video: true,
   });
-  localVideo.srcObject = localStream;
+  pipVideo.srcObject = localStream;
 
   peerConnection = new RTCPeerConnection(peerConfig);
 
@@ -168,14 +191,14 @@ const handleIceCandidate = (event) => {
 };
 const handleRemoteStreamAdded = (event) => {
   let remoteStream = new MediaStream();
-  remoteVideo.srcObject = remoteStream;
+  mainVideo.srcObject = remoteStream;
   event.streams[0].getTracks().forEach((track) => {
     console.debug("Track added to remote stream: ", track);
     remoteStream.addTrack(track);
   });
-  remoteVideo.style.display = "block";
+  mainVideo.style.display = "block";
 };
 const handleRemoteStreamRemoved = (ev) => {
   console.log("Remote Stream Removed");
-  remoteVideo.srcObject = "";
+  mainVideo.srcObject = "";
 };

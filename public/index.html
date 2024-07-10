@@ -8,23 +8,22 @@
   </head>
   <body>
     <div id="videos">
-      <video id="remote-video" class="video-player" autoplay playsinline></video>
+      <video id="pip-video" class="pip video-player" autoplay muted playsinline></video>
       <video
-        id="local-video"
+        id="main-video"
         class="video-player"
         autoplay
-        muted
         playsinline
       ></video>
     </div>
     <div id="call-control-panel">
-      <div id="test-btn" class="btn call-control-button">
+      <div id="test-btn" class="btn call-control-button" style="display: none">
         <span class="call-control-icon material-icons">science</span>
       </div>
       <div id="mic-btn" class="btn call-control-button">
         <span class="call-control-icon material-icons">mic</span>
       </div>
-      <div id="camera-btn" class="btn call-control-button">
+      <div id="cam-btn" class="btn call-control-button">
         <span class="call-control-icon material-icons material-icons-outlined">videocam</span>
       </div>
       <div id="join-room">
