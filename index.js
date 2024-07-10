@@ -62,11 +62,11 @@ io.on("connection", (socket) => {
 
   socket.on("leave", (code) => {
     console.debug(`${socket.id} left room: `, code);
-    socket.leave(code);
     const rooms = Array.from(socket.rooms);
     rooms.forEach((room) => {
       socket.to(room).emit("bye");
     });
+    socket.leave(code);
   });
 
   socket.on("describe", (sessionDesc) => {

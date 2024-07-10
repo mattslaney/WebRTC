@@ -38,6 +38,9 @@ joinRoomBtn.onclick = () => {
       joinRoom.style.display = "flex";
       leaveRoom.style.display = "none";
       leaveRoom.onclick = undefined;
+      peerConnection.close();
+      mainVideo.srcObject = null;
+      init();
     };
   }
 };
@@ -175,8 +178,9 @@ function answer() {
 
 const hangup = () => {
   console.log("HANGUP");
-  //peerConnection.close();
-  //peerConnection = null;
+  mainVideo.srcObject = null;
+  peerConnection.close();
+  init();
 };
 
 const handleIceCandidate = (event) => {
