@@ -108,3 +108,7 @@
 .material-icons.call-control-icon {
   font-size: 2em;
 }
+
+#share-btn {
+  background-color: gray;
+}

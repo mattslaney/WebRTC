@@ -3,10 +3,11 @@ const socket = io();
 const testBtn = document.getElementById("test-btn");
 const joinRoom = document.getElementById("join-room");
 const joinRoomBtn = document.getElementById("join-btn");
+const roomCode = document.getElementById("room-code-input");
 const leaveRoom = document.getElementById("leave-btn");
 const micBtn = document.getElementById("mic-btn");
 const camBtn = document.getElementById("cam-btn");
-const roomCode = document.getElementById("room-code-input");
+const shareBtn = document.getElementById("share-btn");
 const pipVideo = document.getElementById("pip-video");
 const mainVideo = document.getElementById("main-video");
 
@@ -56,6 +57,29 @@ camBtn.onclick = () => {
     ? (camBtn.style.backgroundColor = "")
     : (camBtn.style.backgroundColor = "gray");
 };
+
+let captureStream = null;
+shareBtn.onclick = async () => {
+  if(captureStream) {
+    captureStream = null;
+    shareBtn.style.backgroundColor = "gray";
+  } else {  
+    try {
+      captureStream = await navigator.mediaDevices.getDisplayMedia();
+    } catch (err) {
+      console.error("Error", err);
+    }
+
+    captureStream.getTracks().forEach((track) => {
+      console.debug("Track added to capture stream: ", track);
+      peerConnection.addTrack(track, captureStream);
+    });
+
+    call();
+
+    shareBtn.style.backgroundColor = "seagreen";
+  }
+}
 
 const toggleTrack = (kind) => {
   let mediaTrack = pipVideo.srcObject
