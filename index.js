@@ -19,9 +19,7 @@ try {
   console.error("Error reading config file: ", err);
 }
 
-const generateTurnCredentials = () => {
-  const secret = config.TURN_SECRET;
-  const ttl = parseInt(config.TURN_TTL);
+const generateTurnCredentials = (secret, ttl) => {
   const timestamp = Math.floor(Date.now() / 1000) + ttl;
   const userId = "turnuser";
   const userCombo = `${timestamp}:${userId}`;
@@ -111,7 +109,9 @@ app.use(
   express.static("node_modules/material-icons/iconfont")
 );
 app.get("/config", (_, res) => {
-  const [username, password] = generateTurnCredentials();
+  const secret = config.TURN_SECRET;
+  const ttl = parseInt(config.TURN_TTL);
+  const [username, password] = generateTurnCredentials(secret, ttl);
   console.log(`TURN username: ${username}, password: ${password}`);
 
   const updatedIceServers = peerConfig.iceServers.map((server) => {
