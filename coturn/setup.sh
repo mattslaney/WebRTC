@@ -1,6 +1,8 @@
 # Install coturn
-sudo apt-get update -y
-sudo apt-get install coturn
+if ! command -v nginx &> /dev/null; then
+    sudo apt-get update -y
+    sudo apt-get install coturn
+fi
 
 # Configure coturn
 sudo mv /etc/turnserver.conf /etc/turnserver.conf.backup
