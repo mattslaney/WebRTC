@@ -60,7 +60,7 @@ if (roomKey) {
 
 const enterRoom = async (code) => {
   console.debug("Joining room: ", code);
-  await init()
+  await init();
   socket.emit("join", code);
   joinRoom.style.display = "none";
   leaveRoom.style.display = "flex";
@@ -77,7 +77,7 @@ const exitRoom = (code) => {
   mainVideo.srcObject = null;
   deleteCookie("key");
   location.href = "/";
-}
+};
 
 joinRoomBtn.onclick = () => {
   let code = roomCode.value;
@@ -193,15 +193,16 @@ ice candidates generated and added
 // When local user joins get camera permission and create peer connection
 const init = async () => {
   // Load rtc config from server
-  (async () => {
-    const response = await fetch("/config");
-    if (!response.ok) {
-      throw new Error(`Response status: ${response.status}`);
-    }
+  //(async () => {
+  const response = await fetch("/config");
+  if (!response.ok) {
+    throw new Error(`Response status: ${response.status}`);
+  }
 
-    peerConfig = await response.json();
-  })();
+  peerConfig = await response.json();
+  //})();
 
+  console.debug("Creating peer connection with peer config: ", peerConfig);
   peerConnection = new RTCPeerConnection(peerConfig);
 
   let localStream = await navigator.mediaDevices.getUserMedia({
