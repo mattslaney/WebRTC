@@ -29,18 +29,24 @@
       <div id="share-btn" class="btn call-control-button">
         <span class="call-control-icon material-icons material-icons-outlined">present_to_all</span>
       </div>
-      <div id="join-room">
+      <div id="join-room" style="display: none">
         <div></div>
         <input type="text" id="room-code-input" placeholder="roomcode"/>
         <div id="join-btn" class="btn">
           <span class="call-control-icon material-icons-outlined">login</span>
         </div>
       </div>
-      <div id="leave-btn" class="call-control-button btn" style="display:none">
+      <div id="leave-btn" class="call-control-button btn" style="display:flex">
         <span class="call-control-icon material-icons">logout</span>
       </div>
-    </div>
-  </body>
+  </div>
+  <div id="login-overlay">
+    <form action="/login" method="POST">
+      <h1>Meeting ID: </h1>
+      <input id="meeting-id" type="text" name="key" />
+    </form>
+  </div>
+</body>
   <script src="./socket.io/socket.io.js"></script>
   <script type="module" src="./scripts/WebRTC.js"></script>
   <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

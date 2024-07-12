@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const dotenv = require("dotenv");
 const express = require("express");
+const bodyParser = require('body-parser');
+const cookieParser = require("cookie-parser");
 const app = express();
 const http = require("http");
 const fs = require("fs");
@@ -10,6 +12,10 @@ const config = dotenv.config().parsed;
 
 const { Server } = require("socket.io");
 const io = new Server(server);
+
+app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true })); 
+app.use(cookieParser());
 
 let peerConfig = {};
 try {
@@ -102,13 +108,106 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use(express.static("public"));
+const checkApiKey = (req, res, next) => {
+  const expectedApiKey = config.SITE_PASSWORD;
+  const providedApiKey = req.headers["api-key"];
 
-app.use(
-  "/material-icons",
-  express.static("node_modules/material-icons/iconfont")
-);
-app.get("/config", (_, res) => {
+  if (!providedApiKey || providedApiKey !== expectedApiKey) {
+    return res.status(401).json({ message: "unauthorized" });
+  }
+
+  next();
+};
+
+const genCode = (size) =>
+  [...Array(size)]
+.map(() => Math.floor(Math.random() * 36).toString(36))
+.join("")
+.toUpperCase();
+
+const validKeys = new Map();
+const refreshKeys = () => {
+  const currentTime = Math.floor(Date.now() / 1000);
+  for (const [key, timestamp] of validKeys) {
+    if (currentTime > timestamp) {
+      console.log("Expired: ", key);
+      validKeys.delete(key);
+    }
+  }
+  if(validKeys.size === 0) {
+    validKeys.set(genCode(8), Math.floor(Date.now() / 1000) + 600);
+    console.log("Refreshed default key", validKeys);
+  }
+}
+refreshKeys();
+setInterval(refreshKeys, 60000);
+
+const validKey = (key) => {
+  return validKeys.get(key) 
+    ? true
+    : false
+}
+
+const getKeyTTL = (key) => {
+  const now = Math.floor(Date.now()/1000);
+  const keyExpiryTime = validKeys.get(key);
+  const ttl = keyExpiryTime - now;
+  console.debug(`key: ${key}, ttl: ${ttl}`);
+  return ttl;
+}
+
+const checkKey = (req, res, next) => {
+  // console.log({
+  //   url: req.url,
+  //   cookie: req.cookies.key,
+  //   header: req.headers.key,
+  //   query: req.query.key,
+  //   body: req.body.key
+  // })
+  const providedKey = req.cookies.key || req.headers.key || req.query.key || req.body.key || undefined;
+  if(!providedKey) {
+    next(); 
+    return;
+  }
+
+  console.log(providedKey);
+  if (providedKey !== "undefined" && !validKey(providedKey) ) {
+    console.debug("Invalid key, clearing cookie: ", providedKey);
+    res.clearCookie("key");
+  } else if (!req.cookies.key) {
+    const ttl_ms = getKeyTTL(providedKey) * 1000;
+    console.log("Key not in cookies yet, adding: ", providedKey);
+    res.cookie("key", providedKey, { maxAge: ttl_ms, SameSite: "None" });
+    res.locals.key = providedKey;
+  } else {
+    console.log("Key still valid: ", providedKey);
+  }
+
+  next();
+};
+
+app.post("/login", checkKey, (req, res) => {
+  if(res.locals.key) res.redirect(`/index.html?key=${res.locals.key}`);
+  else res.redirect("index.html");
+});
+
+app.put("/new", checkApiKey, (req, res) => {
+  const newKey = genCode(8);
+  validKeys.set(newKey, Math.floor(Date.now() / 1000) + 600);
+  res.json({ key: newKey });
+});
+
+app.get("/list", checkApiKey, (req, res) => {
+  res.json(Object.fromEntries(validKeys));
+});
+
+app.delete("/clear", checkApiKey, (req, res) => {
+  validKeys.clear();
+  res.json({ message: "cleared" });
+});
+
+app.get("/config", checkKey, (req, res) => {
+  console.log(" in /config");
   const secret = config.TURN_SECRET;
   const ttl = parseInt(config.TURN_TTL);
   const [username, password] = generateTurnCredentials(secret, ttl);
@@ -133,6 +232,13 @@ app.get("/config", (_, res) => {
 
   res.json(updatedPeerConfig);
 });
+
+app.use(
+  "/material-icons",
+  express.static("node_modules/material-icons/iconfont")
+);
+
+app.use(checkKey, express.static("public"));
 
 server.listen(port, () => {
   console.log("Server Started.");

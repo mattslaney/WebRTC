@@ -16,33 +16,73 @@ let peerConfig;
 let isCaller = false;
 let isCallee = false;
 
-// Load rtc config from server
-(async () => {
-  const response = await fetch("/config");
-  if (!response.ok) {
-    throw new Error(`Response status: ${response.status}`);
-  }
+function setCookie(cname, cvalue, exdays) {
+  const d = new Date();
+  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+  let expires = "expires=" + d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
 
-  peerConfig = await response.json();
-})();
+function getCookie(cname) {
+  let name = cname + "=";
+  let ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == " ") {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+function deleteCookie(cname) {
+  document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+async function validKey(roomKey) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(true);
+    }, 0);
+  });
+}
+
+const roomKey = getCookie("key");
+if (roomKey) {
+  validKey(roomKey).then(() => {
+    document.getElementById("login-overlay").remove();
+    enterRoom(roomKey);
+  });
+}
+
+const enterRoom = async (code) => {
+  console.debug("Joining room: ", code);
+  await init()
+  socket.emit("join", code);
+  joinRoom.style.display = "none";
+  leaveRoom.style.display = "flex";
+  leaveRoom.onclick = exitRoom.bind(null, code);
+};
+
+const exitRoom = (code) => {
+  socket.emit("leave", code);
+  console.debug("Left room: ", code);
+  joinRoom.style.display = "flex";
+  leaveRoom.style.display = "none";
+  leaveRoom.onclick = undefined;
+  peerConnection.close();
+  mainVideo.srcObject = null;
+  deleteCookie("key");
+  location.href = "/";
+}
 
 joinRoomBtn.onclick = () => {
   let code = roomCode.value;
   if (code) {
-    socket.emit("join", code);
-    console.debug("Joined room: ", code);
-    joinRoom.style.display = "none";
-    leaveRoom.style.display = "flex";
-    leaveRoom.onclick = () => {
-      socket.emit("leave", code);
-      console.debug("Left room: ", code);
-      joinRoom.style.display = "flex";
-      leaveRoom.style.display = "none";
-      leaveRoom.onclick = undefined;
-      peerConnection.close();
-      mainVideo.srcObject = null;
-      init();
-    };
+    enterRoom(code);
   }
 };
 
@@ -60,10 +100,10 @@ camBtn.onclick = () => {
 
 let captureStream = null;
 shareBtn.onclick = async () => {
-  if(captureStream) {
+  if (captureStream) {
     captureStream = null;
     shareBtn.style.backgroundColor = "gray";
-  } else {  
+  } else {
     try {
       captureStream = await navigator.mediaDevices.getDisplayMedia();
     } catch (err) {
@@ -79,15 +119,15 @@ shareBtn.onclick = async () => {
 
     shareBtn.style.backgroundColor = "seagreen";
   }
-}
+};
 
 const toggleTrack = (kind) => {
   let mediaTrack = pipVideo.srcObject
     .getTracks()
     .find((track) => track.kind === kind);
   mediaTrack.enabled
-    ? mediaTrack.enabled = false
-    : mediaTrack.enabled = true;
+    ? (mediaTrack.enabled = false)
+    : (mediaTrack.enabled = true);
   return mediaTrack.enabled;
 };
 
@@ -101,14 +141,12 @@ testBtn.onclick = () => {
 socket.on("test", (data) => {
   console.log("Received test message: ", data);
 });
-socket.on("welcome", async () => {
-  await init();
-});
-socket.on("created", (code) => {
+socket.on("welcome", async () => {});
+socket.on("created", async (code) => {
   isCaller = true;
   console.debug("Room created: ", code);
 });
-socket.on("joined", (code) => {
+socket.on("joined", async (code) => {
   isCallee = true;
   console.debug("Room joined: ", code);
 });
@@ -154,13 +192,23 @@ ice candidates generated and added
 
 // When local user joins get camera permission and create peer connection
 const init = async () => {
+  // Load rtc config from server
+  (async () => {
+    const response = await fetch("/config");
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+
+    peerConfig = await response.json();
+  })();
+
+  peerConnection = new RTCPeerConnection(peerConfig);
+
   let localStream = await navigator.mediaDevices.getUserMedia({
     audio: true,
     video: true,
   });
   pipVideo.srcObject = localStream;
-
-  peerConnection = new RTCPeerConnection(peerConfig);
 
   localStream.getTracks().forEach((track) => {
     console.debug("Track added to local stream: ", track);
@@ -173,6 +221,7 @@ const init = async () => {
 
   console.log("INITIALISED");
   console.debug("Peer Connection: ", peerConnection);
+  socket.emit("ready");
 };
 
 // When remote user joins, send offer
@@ -230,3 +279,9 @@ const handleRemoteStreamRemoved = (ev) => {
   console.log("Remote Stream Removed");
   mainVideo.srcObject = "";
 };
+
+let localStream = await navigator.mediaDevices.getUserMedia({
+  audio: true,
+  video: true,
+});
+pipVideo.srcObject = localStream;
